@@ -1,13 +1,16 @@
 import fs from 'fs';
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
+import pLimit from 'p-limit';
 
 const inputFile = 'data_alibaba.json';
 const outputFile = 'data_alibaba_translated.json'; // Tên file đầu ra mặc định
 const apiUrl = 'https://api-translate.daisan.vn/translate/batch';
 const BATCH_SIZE = 125; // Số lượng text node tối đa mỗi batch
+const CONCURRENT_BATCHES = 7; // Số lượng batch xử lý đồng thời
 
 let countApiCall = 0;
+const limit = pLimit(CONCURRENT_BATCHES);
 
 async function translateText(text) {
     countApiCall++;
@@ -121,13 +124,25 @@ async function translateAll() {
     let translatedTextNodes = [];
     if (allTextNodes.length > 0) {
         try {
-            console.log(`Gửi batch dịch ${allTextNodes.length} text node trong content (chia nhỏ mỗi batch ${BATCH_SIZE})...`);
+            console.log(`Gửi batch dịch ${allTextNodes.length} text node trong content (chia nhỏ mỗi batch ${BATCH_SIZE}, xử lý ${CONCURRENT_BATCHES} batch đồng thời)...`);
+
+            // Chia nhỏ allTextNodes thành các batch
+            const batches = [];
             for (let i = 0; i < allTextNodes.length; i += BATCH_SIZE) {
-                const batch = allTextNodes.slice(i, i + BATCH_SIZE);
-                const translatedBatch = await translateBatch(batch);
-                translatedTextNodes.push(...translatedBatch);
-                console.log(`  Đã dịch batch ${i / BATCH_SIZE + 1}: ${batch.length} text node.`);
+                batches.push(allTextNodes.slice(i, i + BATCH_SIZE));
             }
+
+            // Dịch song song các batch với p-limit
+            const promises = batches.map((batch, index) =>
+                limit(async () => {
+                    const result = await translateBatch(batch);
+                    console.log(`  Đã dịch batch ${index + 1}/${batches.length}: ${batch.length} text node.`);
+                    return result;
+                })
+            );
+
+            const results = await Promise.all(promises);
+            translatedTextNodes = results.flat();
             console.log('Đã nhận kết quả dịch batch content.');
         } catch (err) {
             console.error('Lỗi dịch batch content:', err.message);
