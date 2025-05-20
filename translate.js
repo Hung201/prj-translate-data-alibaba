@@ -5,7 +5,7 @@ import * as cheerio from 'cheerio';
 const inputFile = 'data_alibaba.json';
 const outputFile = 'data_alibaba_translated.json'; // Tên file đầu ra mặc định
 const apiUrl = 'https://api-translate.daisan.vn/translate/batch';
-const BATCH_SIZE = 120; // Số lượng text node tối đa mỗi batch
+const BATCH_SIZE = 125; // Số lượng text node tối đa mỗi batch
 
 let countApiCall = 0;
 
@@ -99,6 +99,7 @@ function extractTextNodesFromContent(data) {
 }
 
 async function translateAll() {
+    const startTime = Date.now();
     const rawData = fs.readFileSync(inputFile, 'utf8');
     const data = JSON.parse(rawData);
     // 1. Dịch batch title
@@ -161,7 +162,10 @@ async function translateAll() {
         });
     }
     fs.writeFileSync(outputFile, JSON.stringify(data, null, 2), 'utf8');
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(2);
     console.log(`Đã dịch xong ${titles.length} title và ${allTextNodes.length} text node content bằng batch, lưu vào ${outputFile}`);
+    console.log(`Tổng thời gian dịch: ${duration} giây.`);
 }
 
 translateAll(); 
