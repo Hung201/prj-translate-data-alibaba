@@ -1,0 +1,14 @@
+{
+    "name": "alibaba-translate",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "translate.js",
+    "scripts": {
+        "start": "node translate.js"
+    },
+    "dependencies": {
+        "cheerio": "^1.0.0",
+        "node-fetch": "^3.3.2",
+        "p-limit": "^6.2.0"
+    }
+}
