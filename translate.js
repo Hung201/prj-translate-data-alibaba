@@ -49,8 +49,36 @@ function extractTextNodesFromContent(data) {
     let cheerioObjs = [];
     data.forEach((item, itemIdx) => {
         if (item.content) {
-            const $ = cheerio.load(item.content, { decodeEntities: false });
-            cheerioObjs[itemIdx] = $;
+            const $ = cheerio.load(item.content, {
+                decodeEntities: false,
+                xmlMode: false,
+                _useHtmlParser2: true,
+                lowerCaseTags: false,
+                lowerCaseAttributeNames: false,
+                recognizeSelfClosing: true
+            });
+
+            let styleContent = '';
+            $('style').each(function () {
+                styleContent += $(this).html();
+                $(this).remove();
+            });
+
+            $('html').each(function () {
+                $(this).replaceWith($(this).html());
+            });
+            $('head').each(function () {
+                $(this).replaceWith($(this).html());
+            });
+            $('body').each(function () {
+                $(this).replaceWith($(this).html());
+            });
+
+            cheerioObjs[itemIdx] = {
+                $: $,
+                style: styleContent
+            };
+
             let nodeIdx = 0;
             function collectTextNodes(node) {
                 if (node.type === 'text' && node.data.trim()) {
@@ -77,16 +105,13 @@ app.post('/translate', async (req, res) => {
         return res.status(400).json({ error: 'Thiếu url Apify' });
     }
     try {
-        // Lấy dữ liệu từ Apify
         const data = await fetchApifyDataByUrl(apifyUrl);
-        // 1. Dịch batch title
         const titles = data.map(item => item.title);
         let translatedTitles = [];
         translatedTitles = await translateBatch(titles);
         data.forEach((item, i) => {
             item.title = translatedTitles[i] || item.title;
         });
-        // 2. Dịch batch content (chỉ text node)
         const { allTextNodes, nodeRefs, cheerioObjs } = extractTextNodesFromContent(data);
         let translatedTextNodes = [];
         if (allTextNodes.length > 0) {
@@ -104,7 +129,7 @@ app.post('/translate', async (req, res) => {
             });
             data.forEach((item, itemIdx) => {
                 if (item.content && cheerioObjs[itemIdx]) {
-                    let $ = cheerioObjs[itemIdx];
+                    const { $, style } = cheerioObjs[itemIdx];
                     let textNodeIdx = 0;
                     function replaceTextNodes(node) {
                         if (node.type === 'text' && node.data.trim()) {
@@ -120,18 +145,36 @@ app.post('/translate', async (req, res) => {
                     for (let node of $.root().children()) {
                         replaceTextNodes(node);
                     }
-                    item.content = $.html();
+
+                    const formattedStyle = style ? `    <style>\n${style.split('\n').map(line => '        ' + line).join('\n')}\n    </style>\n` : '';
+                    const formattedContent = $.root().html()
+                        .replace(/<div/g, '<DIV')
+                        .replace(/<\/div>/g, '</DIV>')
+                        .replace(/<img/g, '<IMG')
+                        .replace(/<\/img>/g, '')
+                        .replace(/<br\/?>/g, '<BR/>')
+                        .replace(/<b>/g, '<B>')
+                        .replace(/<\/b>/g, '</B>')
+                        .replace(/<table/g, '<TABLE')
+                        .replace(/<\/table>/g, '</TABLE>')
+                        .replace(/<tbody/g, '<TBODY')
+                        .replace(/<\/tbody>/g, '</TBODY>')
+                        .replace(/<tr/g, '<TR')
+                        .replace(/<\/tr>/g, '</TR>')
+                        .replace(/<td/g, '<TD')
+                        .replace(/<\/td>/g, '</TD>')
+                        .replace(/<span/g, '<SPAN')
+                        .replace(/<\/span>/g, '</SPAN>');
+
+                    item.content = formattedStyle + formattedContent;
                 }
             });
         }
-        // Lưu file dịch vào thư mục backup
         const outputFile = generateOutputFileName();
         const outputPath = path.join(backupDir, outputFile);
         fs.writeFileSync(outputPath, JSON.stringify(data, null, 2), 'utf8');
-        // Copy file mới nhất thành latest_translation.json
         const latestPath = path.join(backupDir, 'latest_translation.json');
         fs.copyFileSync(outputPath, latestPath);
-        // Trả về dữ liệu dịch
         return res.json(data);
     } catch (err) {
         return res.status(500).json({ error: err.message });
@@ -154,6 +197,6 @@ async function fetchApifyDataByUrl(url) {
 }
 
 const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`API server listening on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`API server listening on port ${PORT} (accessible from all network interfaces)`);
 }); 
