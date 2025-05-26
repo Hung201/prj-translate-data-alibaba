@@ -51,33 +51,33 @@ function extractTextNodesFromContent(data) {
         if (item.content) {
             const $ = cheerio.load(item.content, {
                 decodeEntities: false,
-                xmlMode: false,
+                // xmlMode: false,
                 _useHtmlParser2: true,
                 lowerCaseTags: false,
                 lowerCaseAttributeNames: false,
                 recognizeSelfClosing: true
             });
 
-            let styleContent = '';
-            $('style').each(function () {
-                styleContent += $(this).html();
-                $(this).remove();
-            });
+            // let styleContent = '';
+            // $('style').each(function () {
+            //     styleContent += $(this).html();
+            //     $(this).remove();
+            // });
 
-            $('html').each(function () {
-                $(this).replaceWith($(this).html());
-            });
-            $('head').each(function () {
-                $(this).replaceWith($(this).html());
-            });
-            $('body').each(function () {
-                $(this).replaceWith($(this).html());
-            });
+            // $('html').each(function () {
+            //     $(this).replaceWith($(this).html());
+            // });
+            // $('head').each(function () {
+            //     $(this).replaceWith($(this).html());
+            // });
+            // $('body').each(function () {
+            //     $(this).replaceWith($(this).html());
+            // });
 
-            cheerioObjs[itemIdx] = {
-                $: $,
-                style: styleContent
-            };
+            // cheerioObjs[itemIdx] = {
+            //     $: $,
+            //     style: styleContent
+            // };
 
             let nodeIdx = 0;
             function collectTextNodes(node) {
