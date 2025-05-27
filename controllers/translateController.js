@@ -44,7 +44,7 @@ class TranslateController {
             }
 
             if (shouldTranslate) {
-                const translatedProducts = await translateService.translateProductsWithoutSave(products);
+                const translatedProducts = await translateService.translateProductsWithoutSave(products, pageId);
                 return res.json({
                     message: 'Đã dịch sản phẩm thành công',
                     total_translated: translatedProducts.length,

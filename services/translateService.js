@@ -254,8 +254,40 @@ class TranslateService {
         }
     }
 
-    async translateProductsWithoutSave(products) {
+    generateBackupFileName() {
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[:.]/g, '-');
+        return `backup_products_${timestamp}.json`;
+    }
+
+    async createBackupFile(products, pageId) {
+        const backupDir = path.join(process.cwd(), 'backup_data_available');
+        if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir);
+        }
+
+        const backupData = {
+            page_id: pageId,
+            timestamp: new Date().toISOString(),
+            products: products.map(p => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                page_id: p.page_id
+            }))
+        };
+
+        const backupFile = this.generateBackupFileName();
+        const backupPath = path.join(backupDir, backupFile);
+        fs.writeFileSync(backupPath, JSON.stringify(backupData, null, 2), 'utf8');
+        return backupPath;
+    }
+
+    async translateProductsWithoutSave(products, pageId) {
         try {
+            // Create backup of untranslated data
+            await this.createBackupFile(products, pageId);
+
             // Chuyển mỗi sản phẩm thành object {title, content} giống dataset Apify
             const data = products.map(p => ({ title: p.name, content: p.description }));
 
@@ -326,14 +358,29 @@ class TranslateService {
                 });
             }
 
-            // Gán lại vào sản phẩm trả về
-            const productsCopy = products.map((p, i) => {
-                const obj = { ...p.toJSON() };
-                obj.name = data[i].title;
-                obj.description = data[i].content;
-                return obj;
+            // Gán lại vào sản phẩm và cập nhật database
+            const updatePromises = products.map((product, index) => {
+                return Product.update(
+                    {
+                        name: data[index].title,
+                        description: data[index].content
+                    },
+                    {
+                        where: { id: product.id }
+                    }
+                );
             });
-            return productsCopy;
+
+            await Promise.all(updatePromises);
+
+            // Lấy lại danh sách sản phẩm đã cập nhật
+            const updatedProducts = await Product.findAll({
+                where: {
+                    id: products.map(p => p.id)
+                }
+            });
+
+            return updatedProducts;
         } catch (error) {
             console.error('Error translating products:', error);
             throw error;
