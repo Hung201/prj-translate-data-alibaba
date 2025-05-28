@@ -1,4 +1,4 @@
-import { Page, Product } from '../models/index.js';
+import { Page, Product } from '../models/relations.js';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
@@ -161,25 +161,7 @@ class TranslateService {
                     }
 
                     const formattedStyle = style ? `    <style>\n${style.split('\n').map(line => '        ' + line).join('\n')}\n    </style>\n` : '';
-                    const formattedContent = $.root().html()
-                        .replace(/<div/g, '<DIV')
-                        .replace(/<\/div>/g, '</DIV>')
-                        .replace(/<img/g, '<IMG')
-                        .replace(/<\/img>/g, '')
-                        .replace(/<br\/?>/g, '<BR/>')
-                        .replace(/<b>/g, '<B>')
-                        .replace(/<\/b>/g, '</B>')
-                        .replace(/<table/g, '<TABLE')
-                        .replace(/<\/table>/g, '</TABLE>')
-                        .replace(/<tbody/g, '<TBODY')
-                        .replace(/<\/tbody>/g, '</TBODY>')
-                        .replace(/<tr/g, '<TR')
-                        .replace(/<\/tr>/g, '</TR>')
-                        .replace(/<td/g, '<TD')
-                        .replace(/<\/td>/g, '</TD>')
-                        .replace(/<span/g, '<SPAN')
-                        .replace(/<\/span>/g, '</SPAN>');
-
+                    const formattedContent = $.root().html();
                     item.content = formattedStyle + formattedContent;
                 }
             });
@@ -335,24 +317,7 @@ class TranslateService {
                             replaceTextNodes(node);
                         }
                         const formattedStyle = style ? `    <style>\n${style.split('\n').map(line => '        ' + line).join('\n')}\n    </style>\n` : '';
-                        const formattedContent = $.root().html()
-                            .replace(/<div/g, '<DIV')
-                            .replace(/<\/div>/g, '<\/DIV>')
-                            .replace(/<img/g, '<IMG')
-                            .replace(/<\/img>/g, '')
-                            .replace(/<br\/?/g, '<BR/>')
-                            .replace(/<b>/g, '<B>')
-                            .replace(/<\/b>/g, '<\/B>')
-                            .replace(/<table/g, '<TABLE')
-                            .replace(/<\/table>/g, '<\/TABLE>')
-                            .replace(/<tbody/g, '<TBODY')
-                            .replace(/<\/tbody>/g, '<\/TBODY>')
-                            .replace(/<tr/g, '<TR')
-                            .replace(/<\/tr>/g, '<\/TR>')
-                            .replace(/<td/g, '<TD')
-                            .replace(/<\/td>/g, '<\/TD>')
-                            .replace(/<span/g, '<SPAN')
-                            .replace(/<\/span>/g, '<\/SPAN>');
+                        const formattedContent = $.root().html();
                         item.content = formattedStyle + formattedContent;
                     }
                 });

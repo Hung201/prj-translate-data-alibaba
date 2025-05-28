@@ -2,3 +2,4 @@ node_modules/
 *.log
 .env
 backup_translations
+backup_data_available
